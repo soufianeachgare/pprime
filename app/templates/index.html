@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cold Room Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Cold Room Monitoring Dashboard</h1>
+
+        <!-- Overview stats -->
+        <div class="grid grid-cols-4 gap-6 mb-6">
+            <div id="total-rooms" class="bg-white p-6 rounded-lg shadow-lg"></div>
+            <div id="active-alerts" class="bg-white p-6 rounded-lg shadow-lg"></div>
+            <div id="avg-temperature" class="bg-white p-6 rounded-lg shadow-lg"></div>
+            <div id="avg-humidity" class="bg-white p-6 rounded-lg shadow-lg"></div>
+        </div>
+
+        <!-- Room cards -->
+        <div class="grid grid-cols-4 gap-6" id="room-cards"></div>
+
+        <!-- sensors rooms overview chart -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <h2 class="text-xl font-semibold mb-4">Sensors Rooms Overview</h2>
+            <canvas id="global-chart"></canvas>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
+            <h2 class="text-xl font-semibold mb-4">Active Alerts</h2>
+            <div id="alerts-container" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // Function to fetch the latest data from the Flask API
+        function fetchData() {
+            // Fetch the latest sensor data
+            fetch('/api/sensors/latest/all')
+                .then(response => response.json())
+                .then(data => updateDashboard(data))
+                .catch(error => console.error('Error fetching data:', error));
+
+            // Fetch active alerts data
+            fetch('/api/sensors/alerts')
+                .then(response => response.json())
+                .then(alerts => updateAlerts(alerts))
+                .catch(error => console.error('Error fetching alerts:', error));
+
+            // Fetch data for the last 24 hours for all rooms
+            fetch('/api/sensors/history/24')
+                .then(response => response.json())
+                .then(data => updateGlobalChart(data))
+                .catch(error => console.error('Error fetching Chart data:', error));
+        }
+
+        // Function to update the dashboard with latest data
+        function updateDashboard(data) {
+            // Total rooms
+            document.getElementById('total-rooms').innerHTML = `<h2 class="text-lg font-semibold">Total Rooms</h2><p>${data.length} rooms monitored</p>`;
+
+            // Active alerts
+            const activeAlerts = data.filter(room => room.alert).length;
+            document.getElementById('active-alerts').innerHTML = `<h2 class="text-lg font-semibold">Active Alerts</h2><p>${activeAlerts} active alerts</p>`;
+
+            // Average temperature
+            const avgTemperature = data.reduce((sum, room) => sum + room.TempConsign, 0) / data.length;
+            document.getElementById('avg-temperature').innerHTML = `<h2 class="text-lg font-semibold">Avg. Temperature</h2><p>${avgTemperature.toFixed(2)}°C</p>`;
+
+            // Average humidity
+            const avgHumidity = data.reduce((sum, room) => sum + room.humConsigne, 0) / data.length;
+            document.getElementById('avg-humidity').innerHTML = `<h2 class="text-lg font-semibold">Avg. Humidity</h2><p>${avgHumidity.toFixed(2)}%</p>`;
+
+            // Room cards
+            const roomCards = data.map(room => `
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold">${room.chambre}</h3>
+                    <p>Temperature: ${room.TempConsign.toFixed(2)}°C</p>
+                    <p>Humidity: ${room.humConsigne.toFixed(2)}%</p>
+                    <div class="mt-4 p-2 rounded text-white ${room.alert ? 'bg-red-500' : 'bg-green-500'}">
+                        ${room.alert ? 'Requires Attention' : 'Normal'}
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('room-cards').innerHTML = roomCards;
+        }
+
+        // Function to update the global chart with data for all rooms
+        function updateGlobalChart(data) {
+            const chartContainer = document.getElementById('global-chart');
+            chartContainer.innerHTML = ''; // Clear any existing charts
+            if (data.length === 0) {
+                chartContainer.innerHTML = '<p class="text-gray-500">No data available for the last 24 hours.</p>';
+                return;
+            }
+
+            console.log(data); // Log the data to the console for inspection
+
+            // Aggregating data
+            const labels = data.map(entry => new Date(entry.timestamp).toLocaleTimeString()); // Time as labels
+            const temperatureData = data.map(entry => entry.TempConsign);
+            const humidityData = data.map(entry => entry.humConsigne);
+            const co2Data = data.map(entry => entry.CO2);
+            const ethyleneData = data.map(entry => entry.ethylene);
+
+            // Create the global chart
+            const canvas = document.createElement('canvas');
+            chartContainer.appendChild(canvas);
+
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: temperatureData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            fill: true,
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: humidityData,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            fill: true,
+                        },
+                        {
+                            label: 'CO2 (ppm)',
+                            data: co2Data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                        },
+                        {
+                            label: 'Ethylene (ppm)',
+                            data: ethyleneData,
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                            fill: true,
+                        }
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Global Sensors Overview',
+                        },
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time',
+                            },
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value',
+                            },
+                        },
+                    },
+                },
+            });
+        }
+        
+        // Function to update the alerts section
+        function updateAlerts(alerts) {
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = ''; // Clear any existing alerts
+
+            if (alerts.length === 0) {
+                alertsContainer.innerHTML = '<p class="text-gray-500">No active alerts at the moment.</p>';
+                return;
+            }
+
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = 'p-4 border-l-4 rounded shadow-sm ' +
+                    (alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100');
+
+                alertElement.innerHTML = `
+                    <h3 class="font-semibold">${alert.roomName}</h3>
+                    <p>${alert.message}</p>
+                    <p class="text-sm text-gray-600">Timestamp: ${new Date(alert.timestamp).toLocaleString()}</p>
+                `;
+
+                alertsContainer.appendChild(alertElement);
+            });
+        }
+
+        // Initial fetch on page load
+        window.onload = fetchData;
+
+        // Optionally, refresh the data every 30 seconds
+        setInterval(fetchData, 30000);  // Refresh every 30 seconds
+    </script>
+</body>
+
+</html>
