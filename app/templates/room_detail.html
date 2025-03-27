@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Details - Cold Room Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Room Details: <span id="room-name"></span></h1>
+
+        <!-- Current Data -->
+        <div id="current-data" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Current Data</h2>
+            <div id="current-temperature" class="text-gray-700"></div>
+            <div id="current-humidity" class="text-gray-700"></div>
+            <div id="current-co2" class="text-gray-700"></div>
+            <div id="current-ethylene" class="text-gray-700"></div>
+        </div>
+
+        <!-- Current Signals (True/False with color) -->
+        <div class="grid grid-cols-4 gap-6 mb-6">
+            <div id="signal-temperature" class="signal"></div>
+            <div id="signal-humidity" class="signal"></div>
+            <div id="signal-co2" class="signal"></div>
+            <div id="signal-ethylene" class="signal"></div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div id="alerts-section" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Alerts</h2>
+            <ul id="alerts-list" class="space-y-4"></ul>
+        </div>
+
+        <!-- Historical Data Table -->
+        <div id="historical-data" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">Last 10 Data Records</h2>
+            <table class="table-auto w-full">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2">Timestamp</th>
+                        <th class="px-4 py-2">Temperature (°C)</th>
+                        <th class="px-4 py-2">Humidity (%)</th>
+                        <th class="px-4 py-2">CO2 (ppm)</th>
+                        <th class="px-4 py-2">Ethylene (ppm)</th>
+                    </tr>
+                </thead>
+                <tbody id="historical-table-body">
+                    <!-- Data rows will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Charts for each parameter -->
+        <div id="charts" class="space-y-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Temperature Chart</h3>
+                <canvas id="temperature-chart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Humidity Chart</h3>
+                <canvas id="humidity-chart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">CO2 Chart</h3>
+                <canvas id="co2-chart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Ethylene Chart</h3>
+                <canvas id="ethylene-chart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const roomId = '{{ room_id }}'; // Flask template variable for room_id
+
+        // Fetch and update room details
+        function fetchRoomDetails() {
+            fetch(`/api/sensors/latest/${roomId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateCurrentData(data[0]);  // Assuming data is an array with one object
+                    updateSignals(data[0]);
+                    fetchHistoricalData();
+                    fetchAlerts();
+                    fetchRoomCharts();
+                })
+                .catch(error => console.error('Error fetching room details:', error));
+        }
+
+        // Update current data (Temperature, Humidity, CO2, Ethylene)
+        function updateCurrentData(data) {
+            document.getElementById('room-name').textContent = data.chambre;
+            document.getElementById('current-temperature').textContent = `Temperature: ${data.TempConsign.toFixed(2)}°C`;
+            document.getElementById('current-humidity').textContent = `Humidity: ${data.humConsigne.toFixed(2)}%`;
+            document.getElementById('current-co2').textContent = `CO2: ${data.CO2.toFixed(2)} ppm`;
+            document.getElementById('current-ethylene').textContent = `Ethylene: ${data.ethylene.toFixed(2)} ppm`;
+        }
+
+        // Update signals (True: Green, False: Red)
+        function updateSignals(data) {
+            updateSignal('signal-temperature', data.TempConsign >= 0);
+            updateSignal('signal-humidity', data.humConsigne >= 40);
+            updateSignal('signal-co2', data.CO2 <= 1000);
+            updateSignal('signal-ethylene', data.ethylene <= 5);
+        }
+
+        function updateSignal(elementId, condition) {
+            const signalElement = document.getElementById(elementId);
+            if (condition) {
+                signalElement.innerHTML = `${elementId}<span class="text-green-500">✔️</span>`;  // Green icon
+            } else {
+                signalElement.innerHTML = `${elementId}<span class="text-red-500">❌</span>`;  // Red icon
+            }
+        }
+
+        // Fetch the last 10 historical records for this room
+        function fetchHistoricalData() {
+            fetch(`/api/sensors/history/24/${roomId}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('historical-table-body');
+                tableBody.innerHTML = data.slice(0, 10).map(record => `
+                <tr>
+                    <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
+                    <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
+                    <td class="px-4 py-2">${record.humConsigne.toFixed(2)}%</td>
+                    <td class="px-4 py-2">${record.CO2.toFixed(2)} ppm</td>
+                    <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
+                </tr>
+                `).join('');
+            })
+            .catch(error => console.error('Error fetching historical data:', error));
+        }
+
+        // Fetch and display alerts for this room
+        function fetchAlerts() {
+            fetch(`/api/sensors/alerts/${roomId}`)
+                .then(response => response.json())
+                .then(alerts => {
+                    const alertsList = document.getElementById('alerts-list');
+                    alertsList.innerHTML = alerts.filter(alert => alert.roomName === roomId).map(alert => `
+                        <li class="p-4 border-l-4 rounded shadow-sm ${alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100'}">
+                            <h3 class="font-semibold">${alert.message}</h3>
+                            <p class="text-sm text-gray-600">${new Date(alert.timestamp).toLocaleString()}</p>
+                        </li>
+                    `).join('');
+                })
+                .catch(error => console.error('Error fetching alerts:', error));
+        }
+
+        // Fetch and display charts for each parameter
+        function fetchRoomCharts() {
+            fetch(`/api/sensors/history/24/${roomId}`)
+                .then(response => response.json())
+                .then(data => {
+                    createChart('temperature-chart', data, 'TempConsign', 'Temperature (°C)');
+                    createChart('humidity-chart', data, 'humConsigne', 'Humidity (%)');
+                    createChart('co2-chart', data, 'CO2', 'CO2 (ppm)');
+                    createChart('ethylene-chart', data, 'ethylene', 'Ethylene (ppm)');
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
+        }
+
+        // Create chart for a given parameter
+        function createChart(chartId, data, param, label) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(record => new Date(record.timestamp).toLocaleTimeString()),
+                    datasets: [{
+                        label: label,
+                        data: data.map(record => record[param]),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time' },
+                        },
+                        y: {
+                            title: { display: true, text: label },
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fetch room details on page load
+        window.onload = fetchRoomDetails;
+    </script>
+
+</body>
+
+</html>

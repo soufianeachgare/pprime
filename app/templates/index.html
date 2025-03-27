@@ -85,6 +85,9 @@
                     <div class="mt-4 p-2 rounded text-white ${room.alert ? 'bg-red-500' : 'bg-green-500'}">
                         ${room.alert ? 'Requires Attention' : 'Normal'}
                     </div>
+                    <a href="/room/${room.chambre}" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        See More
+                    </a>
                 </div>
             `).join('');
             document.getElementById('room-cards').innerHTML = roomCards;

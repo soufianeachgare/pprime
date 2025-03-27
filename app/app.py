@@ -119,7 +119,7 @@ def get_room_history(room_id):
 def get_latest_room(room_id):
     try:
         # Query the latest sensor data for a specific room
-        query = "SELECT * FROM capteurs WHERE chambre = %s LIMIT 1"
+        query = "SELECT * FROM capteurs WHERE chambre = %s LIMIT 1 ALLOW FILTERING"
         rows = session.execute(query, (room_id,))
         data = []
         for row in rows:
@@ -146,7 +146,62 @@ def get_latest_room(room_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+# Endpoint to get the latest sensor alert for a specific room
+@app.route('/api/sensors/alerts/<room_id>', methods=['GET'])
+def get_room_alerts(room_id):
+    try:
+        # Query the latest sensor data for a specific room
+        query = "SELECT * FROM capteurs WHERE chambre = %s LIMIT 1 ALLOW FILTERING"
+        rows = session.execute(query, (room_id,))
+        data = []
+        for row in rows:
+            if row.tempconsign > 25.0:
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "Temperature exceeds threshold!",
+                    "severity": "high",
+                    "timestamp": row.timestamp.isoformat()
+                })
+            if row.humsign < 40.0:
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "Humidity below acceptable range.",
+                    "severity": "medium",
+                    "timestamp": row.timestamp.isoformat()
+                })
+            if row.co2 > 1000.0:
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "CO2 level exceeds threshold!",
+                    "severity": "high",
+                    "timestamp": row.timestamp.isoformat()
+                })
+            if row.ethylene > 2.0:
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "Ethylene level exceeds threshold!",
+                    "severity": "high",
+                    "timestamp": row.timestamp.isoformat()
+                })
+            if row.doorsign:  # Assuming doorsign is True when the door is open
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "Door is open!",
+                    "severity": "medium",
+                    "timestamp": row.timestamp.isoformat()
+                })
+            if not row.fanontsign:  # Assuming fanontsign is False when the fan is off
+                data.append({
+                    "roomName": row.chambre,
+                    "message": "Fan is off!",
+                    "severity": "medium",
+                    "timestamp": row.timestamp.isoformat()
+                })
 
+        return jsonify(data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # Endpoint to get the sensor data for a specific room in a specific time range
 @app.route('/api/sensors/history/<room_id>/<start>/<end>', methods=['GET'])
 def get_room_history_range(room_id, start, end):
@@ -316,6 +371,10 @@ def get_temperature_all():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/room/<room_id>')
+def room_detail(room_id):
+    return render_template('room_detail.html', room_id=room_id)
+
 # Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
