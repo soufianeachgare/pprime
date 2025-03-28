@@ -7,6 +7,8 @@
     <title>Cold Room Monitoring Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
 <body class="bg-gray-100">
@@ -22,7 +24,7 @@
         </div>
 
         <!-- Room cards -->
-        <div class="grid grid-cols-4 gap-6" id="room-cards"></div>
+        <div class="grid grid-cols-3 gap-6" id="room-cards"></div>
 
         <!-- sensors rooms overview chart -->
         <div class="bg-white p-6 rounded-lg shadow-lg mt-6">
@@ -78,16 +80,41 @@
 
             // Room cards
             const roomCards = data.map(room => `
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold">${room.chambre}</h3>
-                    <p>Temperature: ${room.TempConsign.toFixed(2)}°C</p>
-                    <p>Humidity: ${room.humConsigne.toFixed(2)}%</p>
-                    <div class="mt-4 p-2 rounded text-white ${room.alert ? 'bg-red-500' : 'bg-green-500'}">
-                        ${room.alert ? 'Requires Attention' : 'Normal'}
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">${room.chambre}</h3>
                     </div>
-                    <a href="/room/${room.chambre}" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        See More
-                    </a>
+                    <div class="flex items-center mb-4 justify-between">
+                        <div class="flex flex-col items-center mb-4">
+                            <div class="flex items-center">
+                                <span class="material-symbols-outlined text-gray-500 mr-2">thermostat</span>
+                                <p>Temperature</p>
+                            </div>
+                            <p class="text-lg font-bold">${room.TempConsign.toFixed(1)}°C</p>
+                            <span class="text-sm text-gray-500 ml-2">Target: 1000°C</span>
+                        </div>
+                        <div class="flex flex-col items-center mb-4">
+                            <div class="flex items-center">
+                                <span class="material-symbols-outlined text-gray-500 mr-2">humidity_low</span>
+                                <p>humidity</p>
+                            </div>
+                            <p class="text-lg font-bold">${room.humConsigne.toFixed(1)}%</p>
+                            <span class="text-sm text-gray-500 ml-2">Target: 30 %</span>
+
+                        </div>
+                    </div>
+                    <div class="flex items-center mb-4">
+                        <span class="material-symbols-outlined text-gray-500 mr-2">door_front</span>
+                        <p>Door : <span class="text-lg"> ${room.doorSign ? ' Open' : ' Closed'}</span></p>
+                        <span class="px-4 py-1 text-sm rounded-full ${room.doorSign ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} ml-2">
+                            ${room.doorSign ? 'Alert' : 'Normal'}
+                        </span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <p class="text-sm text-gray-500">Updated: ${new Date(room.timestamp).toLocaleString()}</p>
+                        <a href="/room/${room.chambre}" class="text-blue-500 font-semibold hover:underline">Details</a>
+                    </div>
                 </div>
             `).join('');
             document.getElementById('room-cards').innerHTML = roomCards;
@@ -175,7 +202,7 @@
                 },
             });
         }
-        
+
         // Function to update the alerts section
         function updateAlerts(alerts) {
             const alertsContainer = document.getElementById('alerts-container');
