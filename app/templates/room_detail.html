@@ -211,20 +211,115 @@
         // Fetch the last 10 historical records for this room
         function fetchHistoricalData() {
             fetch(`/api/sensors/history/24/${roomId}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('historical-table-body');
+                tableBody.innerHTML = data.slice(0, 10).map(record => `
+            <tr>
+                <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
+                <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
+                <td class="px-4 py-2">${record.humConsigne.toFixed(2)}%</td>
+                <td class="px-4 py-2">${record.CO2.toFixed(2)} ppm</td>
+                <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
+            </tr>
+            `).join('');
+
+                // Add "See More" button
+                const historicalDataDiv = document.getElementById('historical-data');
+                if (!document.getElementById('see-more-historical')) {
+                const seeMoreButton = document.createElement('button');
+                seeMoreButton.id = 'see-more-historical';
+                seeMoreButton.className = 'mt-4 text-blue-500 underline';
+                seeMoreButton.textContent = 'See More';
+                seeMoreButton.addEventListener('click', showHistoricalModal);
+                historicalDataDiv.appendChild(seeMoreButton);
+                }
+            })
+            .catch(error => console.error('Error fetching historical data:', error));
+        }
+
+        function showHistoricalModal() {
+            const modal = document.createElement('div');
+            modal.id = 'historical-modal';
+            modal.className = 'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+            <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 max-h-full overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">All Historical Data</h2>
+                <button id="close-historical-modal" class="bg-red-500 text-white px-4 py-2 rounded">Close</button>
+                </div>
+                <div class="flex gap-4 mb-4">
+                <div>
+                    <label for="start-date" class="block text-sm font-medium text-gray-700">Start Date:</label>
+                    <input type="date" id="start-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="end-date" class="block text-sm font-medium text-gray-700">End Date:</label>
+                    <input type="date" id="end-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button id="search-historical" class="bg-blue-500 text-white px-4 py-2 rounded self-end">Search</button>
+                <button id="export-historical" class="bg-green-500 text-white px-4 py-2 rounded self-end">Export</button>
+                </div>
+                <table class="table-auto w-full">
+                <thead>
+                    <tr>
+                    <th class="px-4 py-2">Timestamp</th>
+                    <th class="px-4 py-2">Temperature (°C)</th>
+                    <th class="px-4 py-2">Humidity (%)</th>
+                    <th class="px-4 py-2">CO2 (ppm)</th>
+                    <th class="px-4 py-2">Ethylene (ppm)</th>
+                    </tr>
+                </thead>
+                <tbody id="historical-modal-table-body">
+                    <!-- Data rows will be dynamically added here -->
+                </tbody>
+                </table>
+            </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Close modal functionality
+            document.getElementById('close-historical-modal').addEventListener('click', () => {
+            document.body.removeChild(modal);
+            });
+
+            // Search functionality
+            document.getElementById('search-historical').addEventListener('click', () => {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            if (startDate && endDate) {
+                fetch(`/api/sensors/history/${roomId}/${startDate}/${endDate}`)
                 .then(response => response.json())
                 .then(data => {
-                    const tableBody = document.getElementById('historical-table-body');
-                    tableBody.innerHTML = data.slice(0, 10).map(record => `
-                <tr>
-                    <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
-                    <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
-                    <td class="px-4 py-2">${record.humConsigne.toFixed(2)}%</td>
-                    <td class="px-4 py-2">${record.CO2.toFixed(2)} ppm</td>
-                    <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
-                </tr>
-                `).join('');
+                    const tableBody = document.getElementById('historical-modal-table-body');
+                    tableBody.innerHTML = data.map(record => `
+                    <tr>
+                        <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
+                        <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
+                        <td class="px-4 py-2">${record.humConsigne.toFixed(2)}%</td>
+                        <td class="px-4 py-2">${record.CO2.toFixed(2)} ppm</td>
+                        <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
+                    </tr>
+                    `).join('');
                 })
                 .catch(error => console.error('Error fetching historical data:', error));
+            } else {
+                alert('Please select both start and end dates.');
+            }
+            });
+
+            // Export functionality
+            document.getElementById('export-historical').addEventListener('click', () => {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            if (startDate && endDate) {
+                window.open(`/api/sensors/history/export/${roomId}/${startDate}/${endDate}`, '_blank');
+            } else {
+                alert('Please select both start and end dates.');
+            }
+            });
         }
 
         // Fetch and display alerts for this room
