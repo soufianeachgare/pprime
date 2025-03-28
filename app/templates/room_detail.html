@@ -186,16 +186,29 @@
             fetch(`/api/sensors/alerts/${roomId}`)
                 .then(response => response.json())
                 .then(alerts => {
+                    const sortedAlerts = alerts
+                        .filter(alert => alert.roomName === roomId)
+                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
                     const alertsList = document.getElementById('alerts-list');
-                    alertsList.innerHTML = alerts.filter(alert => alert.roomName === roomId).map(alert => `
-                        <li class="p-4 border-l-4 rounded shadow-sm ${alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100'}">
-                            <h3 class="font-semibold">${alert.message}</h3>
-                            <p class="text-sm text-gray-600">${new Date(alert.timestamp).toLocaleString()}</p>
-                        </li>
-                    `).join('');
+                    alertsList.innerHTML = sortedAlerts.slice(0, 5).map(alert => `
+                <li class="p-4 border-l-4 rounded shadow-sm ${alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100'}">
+                    <h3 class="font-semibold">${alert.message}</h3>
+                    <p class="text-sm text-gray-600">${new Date(alert.timestamp).toLocaleString()}</p>
+                </li>
+                `).join('');
+
+                    // Add "See More" button
+                    if (sortedAlerts.length > 5) {
+                        alertsList.innerHTML += `
+                    <button id="see-more-alerts" class="mt-4 text-blue-500 underline">See More</button>
+                `;
+                        document.getElementById('see-more-alerts').addEventListener('click', () => showAllAlertsModal(sortedAlerts));
+                    }
                 })
                 .catch(error => console.error('Error fetching alerts:', error));
         }
+
 
         // Fetch and display charts for each parameter
         function fetchRoomCharts() {
@@ -242,6 +255,58 @@
         // Fetch room details on page load
         window.onload = fetchRoomDetails;
     </script>
+    <script>
+        // Show modal with all alerts
+        function showAllAlertsModal(alerts) {
+            const modal = document.createElement('div');
+            modal.id = 'alerts-modal';
+            modal.className = 'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 max-h-full overflow-y-auto">
+                    <div class="flex flex-row justify-between gap-4 px-4">
+                        <h2 class="text-xl font-semibold mb-4">All Alerts</h2>
+                        <button id="close-alerts-modal" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">Close</button>
+                    </div>
+                    <div class="mb-4">
+                        <label for="filter-date" class="block text-sm font-medium text-gray-700">Filter by Date:</label>
+                        <input type="date" id="filter-date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div id="alerts-grid" class="grid grid-cols-4 gap-4">
+                        ${alerts.map(alert => `
+                            <div class="p-4 border-l-4 rounded shadow-sm ${alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100'}">
+                                <h3 class="font-semibold">${alert.message}</h3>
+                                <p class="text-sm text-gray-600">${new Date(alert.timestamp).toLocaleString()}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Filter functionality
+            document.getElementById('filter-date').addEventListener('change', (event) => {
+                const selectedDate = new Date(event.target.value);
+                const filteredAlerts = alerts.filter(alert => {
+                    const alertDate = new Date(alert.timestamp);
+                    return alertDate.toDateString() === selectedDate.toDateString();
+                });
+
+                const alertsGrid = document.getElementById('alerts-grid');
+                alertsGrid.innerHTML = filteredAlerts.map(alert => `
+                    <div class="p-4 border-l-4 rounded shadow-sm ${alert.severity === 'high' ? 'border-red-500 bg-red-100' : 'border-yellow-500 bg-yellow-100'}">
+                        <h3 class="font-semibold">${alert.message}</h3>
+                        <p class="text-sm text-gray-600">${new Date(alert.timestamp).toLocaleString()}</p>
+                    </div>
+                `).join('');
+            });
+
+            // Close modal functionality
+            document.getElementById('close-alerts-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+        }
+    </script>
+
 </body>
 
 </html>
