@@ -71,6 +71,49 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <!-- Door Card -->
+            <div id="door-status" class="bg-white p-6 rounded-lg shadow-lg mb-6 flex items-center justify-between">
+                <div class="flex flex-col gap-4">
+                    <p>Door Status</p>
+                    <div class="flex gap-2">
+                        <span class="material-symbols-outlined">
+                            door_front
+                        </span>
+                        <h3 class="font-bold text-xl" id="door-status-value"></h3>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- conservation Mode Card -->
+            <div id="mode-status" class="bg-white p-6 rounded-lg shadow-lg mb-6 flex items-center justify-between">
+                <div class="flex flex-col gap-4">
+                    <p>Conservation Mode</p>
+                    <div class="flex gap-2">
+                        <span class="material-symbols-outlined">
+                            settings
+                        </span>
+                        <h3 class="font-bold text-xl" id="conserv-mode-status-value"></h3>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Fan Card -->
+            <div id="fan-status" class="bg-white p-6 rounded-lg shadow-lg mb-6 flex items-center justify-between">
+                <div class="flex flex-col gap-4">
+                    <p>Fan Status</p>
+                    <div class="flex gap-2">
+                        <span class="material-symbols-outlined">
+                            mode_fan
+                        </span>
+                        <h3 class="font-bold text-xl" id="fan-status-value"></h3>
+                    </div>
+                </div>
+
+            </div>
+        </div>
         <!-- Alerts Section -->
         <div id="alerts-section" class="bg-white p-6 rounded-lg shadow-lg mb-6">
             <h2 class="text-xl font-semibold mb-4">Active Alerts</h2>
@@ -143,6 +186,9 @@
             document.getElementById('humidity-value').textContent = `${data.humConsigne.toFixed(2)}%`;
             document.getElementById('co2-value').textContent = `${data.CO2.toFixed(2)} ppm`;
             document.getElementById('ethylene-value').textContent = `${data.ethylene.toFixed(2)} ppm`;
+            document.getElementById('door-status-value').textContent = data.doorSign ? 'Open' : 'Closed';
+            document.getElementById('conserv-mode-status-value').textContent = data.conservMode;
+            document.getElementById('fan-status-value').textContent = data.FaninSign ? 'On' : 'Off';
         }
 
         // Update signals (True: Green, False: Red)
