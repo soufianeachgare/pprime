@@ -374,6 +374,48 @@ def get_temperature_all():
 @app.route('/room/<room_id>')
 def room_detail(room_id):
     return render_template('room_detail.html', room_id=room_id)
+# Endpoint to export the sensor data for a specific room in a specific time range as csv
+@app.route('/api/sensors/history/<room_id>/<start>/<end>/export', methods=['GET'])
+def export_room_history_range(room_id, start, end):
+    try:
+        # Query the sensor data for a specific room in a specific time range
+        query = "SELECT * FROM capteurs WHERE chambre = %s AND timestamp >= %s AND timestamp <= %s ALLOW FILTERING"
+        rows = session.execute(query, (room_id, datetime.fromisoformat(start), datetime.fromisoformat(end)))
+        data = []
+        for row in rows:
+            data.append({
+                'id': str(row.id),
+                'timestamp': row.timestamp.isoformat(),
+                'doorSign': getattr(row, 'doorsign', None),
+                'ethylene': row.ethylene,
+                'chambre': row.chambre,
+                'conservMode': row.conservmode,
+                'TempConsign': row.tempconsign,
+                'forcageMode': row.forcagemode,
+                'FanontSign': getattr(row, 'fanontsign', None),
+                'FaninSign': getattr(row, 'faninsign', None),
+                'humConsigne': row.humconsigne,
+                'humSign': row.humsign,
+                'CO2Consigne': row.co2consigne,
+                'CO2': row.co2,
+                'ethConsign': row.ethconsign,
+                'ethSign': row.ethsign,
+            })
+
+        # Convert data to CSV format
+        csv_data = "id,timestamp,doorSign,ethylene,chambre,conservMode,TempConsign,forcageMode,FanontSign,FaninSign,humConsigne,humSign,CO2Consigne,CO2,ethConsign,ethSign\n"
+        for item in data:
+            csv_data += ",".join([str(item[key]) for key in item.keys()]) + "\n"
+
+        # Return CSV file as response
+        response = jsonify(csv_data)
+        response.headers["Content-Disposition"] = "attachment; filename=room_history.csv"
+        response.headers["Content-Type"] = "text/csv"
+        return response
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # Run the Flask app
 if __name__ == "__main__":
