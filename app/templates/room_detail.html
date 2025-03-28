@@ -7,33 +7,76 @@
     <title>Room Details - Cold Room Monitoring</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 
 <body class="bg-gray-100">
     <div class="container mx-auto p-6">
-        <h1 class="text-3xl font-bold mb-6">Room Details: <span id="room-name"></span></h1>
-
-        <!-- Current Data -->
-        <div id="current-data" class="bg-white p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">Current Data</h2>
-            <div id="current-temperature" class="text-gray-700"></div>
-            <div id="current-humidity" class="text-gray-700"></div>
-            <div id="current-co2" class="text-gray-700"></div>
-            <div id="current-ethylene" class="text-gray-700"></div>
+        <!-- Back and Room Title -->
+        <div class="flex items-center justify-between mb-6">
+            <a href="/dashboard" class="text-blue-500 font-semibold text-lg">Back to Dashboard</a>
+            <h1 class="text-3xl font-bold">Cold Room: <span id="room-name"></span></h1>
         </div>
 
-        <!-- Current Signals (True/False with color) -->
+        <!-- Current Data Section -->
         <div class="grid grid-cols-4 gap-6 mb-6">
-            <div id="signal-temperature" class="signal"></div>
-            <div id="signal-humidity" class="signal"></div>
-            <div id="signal-co2" class="signal"></div>
-            <div id="signal-ethylene" class="signal"></div>
+            <!-- Temperature Card -->
+            <div id="current-temperature" class="bg-white p-6 rounded-lg shadow-lg flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <p>Temperature</p>
+                    <h3 class="font-bold text-2xl" id="temperature-value"></h3>
+                    <p class="text-gray-500">Setpoint: <span id="signal-temperature" class="text-xl"></span></p>
+                </div>
+                <span class="h-16 material-symbols-outlined">
+                    thermometer
+                </span>
+            </div>
+
+            <!-- Humidity Card -->
+            <div id="current-humidity" class="bg-white p-6 rounded-lg shadow-lg flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <p>Humidity</p>
+                    <h3 class="font-bold text-2xl" id="humidity-value"></h3>
+                    <p class="text-gray-500">Setpoint: <span id="signal-humidity" class="text-xl"></span></p>
+                </div>
+                <span class="h-16 material-symbols-outlined">
+                    humidity_low
+                </span>
+
+            </div>
+
+            <!-- CO2 Level Card -->
+            <div id="current-co2" class="bg-white p-6 rounded-lg shadow-lg flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <p>CO2 Level</p>
+                    <h3 class="font-bold text-2xl" id="co2-value"></h3>
+                    <p class="text-gray-500">Setpoint: <span id="signal-co2" class="text-xl"></span></p>
+                </div>
+                <span class="h-16 material-symbols-outlined">
+                    co2
+                </span>
+            </div>
+
+            <!-- Ethylene Card -->
+            <div id="current-ethylene" class="bg-white p-6 rounded-lg shadow-lg flex items-center justify-between">
+                <div class="flex flex-col gap-2">
+                    <p>Ethylene</p>
+                    <h3 class="font-bold text-2xl" id="ethylene-value"></h3>
+                    <p class="text-gray-500">Setpoint: <span id="signal-ethylene" class="text-xl"></span></p>
+                </div>
+                <span class="h-16 material-symbols-outlined">
+                    eco
+                </span>
+            </div>
         </div>
 
         <!-- Alerts Section -->
         <div id="alerts-section" class="bg-white p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">Alerts</h2>
-            <ul id="alerts-list" class="space-y-4"></ul>
+            <h2 class="text-xl font-semibold mb-4">Active Alerts</h2>
+            <ul id="alerts-list" class="space-y-4">
+                <!-- Dynamic alerts will be inserted here -->
+            </ul>
         </div>
 
         <!-- Historical Data Table -->
@@ -74,7 +117,6 @@
                 <canvas id="ethylene-chart"></canvas>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -97,10 +139,10 @@
         // Update current data (Temperature, Humidity, CO2, Ethylene)
         function updateCurrentData(data) {
             document.getElementById('room-name').textContent = data.chambre;
-            document.getElementById('current-temperature').textContent = `Temperature: ${data.TempConsign.toFixed(2)}°C`;
-            document.getElementById('current-humidity').textContent = `Humidity: ${data.humConsigne.toFixed(2)}%`;
-            document.getElementById('current-co2').textContent = `CO2: ${data.CO2.toFixed(2)} ppm`;
-            document.getElementById('current-ethylene').textContent = `Ethylene: ${data.ethylene.toFixed(2)} ppm`;
+            document.getElementById('temperature-value').textContent = `${data.TempConsign.toFixed(2)}°C`;
+            document.getElementById('humidity-value').textContent = `${data.humConsigne.toFixed(2)}%`;
+            document.getElementById('co2-value').textContent = `${data.CO2.toFixed(2)} ppm`;
+            document.getElementById('ethylene-value').textContent = `${data.ethylene.toFixed(2)} ppm`;
         }
 
         // Update signals (True: Green, False: Red)
@@ -114,19 +156,19 @@
         function updateSignal(elementId, condition) {
             const signalElement = document.getElementById(elementId);
             if (condition) {
-                signalElement.innerHTML = `${elementId}<span class="text-green-500">✔️</span>`;  // Green icon
+                signalElement.innerHTML = `<span class="text-green-500">✔️</span>`;  // Green icon
             } else {
-                signalElement.innerHTML = `${elementId}<span class="text-red-500">❌</span>`;  // Red icon
+                signalElement.innerHTML = `<span class="text-red-500">❌</span>`;  // Red icon
             }
         }
 
         // Fetch the last 10 historical records for this room
         function fetchHistoricalData() {
             fetch(`/api/sensors/history/24/${roomId}`)
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.getElementById('historical-table-body');
-                tableBody.innerHTML = data.slice(0, 10).map(record => `
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('historical-table-body');
+                    tableBody.innerHTML = data.slice(0, 10).map(record => `
                 <tr>
                     <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
                     <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
@@ -135,8 +177,8 @@
                     <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
                 </tr>
                 `).join('');
-            })
-            .catch(error => console.error('Error fetching historical data:', error));
+                })
+                .catch(error => console.error('Error fetching historical data:', error));
         }
 
         // Fetch and display alerts for this room
@@ -200,7 +242,6 @@
         // Fetch room details on page load
         window.onload = fetchRoomDetails;
     </script>
-
 </body>
 
 </html>

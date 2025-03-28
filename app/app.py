@@ -146,12 +146,12 @@ def get_latest_room(room_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# Endpoint to get the latest sensor alert for a specific room
+# Endpoint to get the latest sensor alerts for a specific room
 @app.route('/api/sensors/alerts/<room_id>', methods=['GET'])
 def get_room_alerts(room_id):
     try:
         # Query the latest sensor data for a specific room
-        query = "SELECT * FROM capteurs WHERE chambre = %s LIMIT 1 ALLOW FILTERING"
+        query = "SELECT * FROM capteurs WHERE chambre = %s ALLOW FILTERING"
         rows = session.execute(query, (room_id,))
         data = []
         for row in rows:
