@@ -142,24 +142,60 @@
         </div>
 
         <!-- Charts for each parameter -->
-        <div id="charts" class="space-y-6">
-            <div class="bg-white p-6 rounded-lg shadow-lg">
+        <div id="charts" class="flex flex-col gap-4">
+            <div class="p-4 rounded-lg shadow-lg">
+                <ul class="flex gap-4 justify-between">
+                    <li class="mr-1 w-full">
+                        <a href="#temperature-tab"
+                            class="inline-block w-full text-center py-2 px-4 font-semibold hover:text-white hover:bg-black hover:border-black border-2 rounded-lg border-transparent transition-all duration-300 bg-white">Temperature</a>
+                    </li>
+                    <li class="mr-1 w-full">
+                        <a href="#humidity-tab"
+                            class="inline-block w-full text-center py-2 px-4 text-gray-500 font-semibold hover:text-white hover:bg-black hover:border-black border-2 rounded-lg border-transparent transition-all duration-300">Humidity</a>
+                    </li>
+                    <li class="mr-1 w-full">
+                        <a href="#co2-tab"
+                            class="inline-block w-full text-center py-2 px-4 text-gray-500 font-semibold hover:text-white hover:bg-black hover:border-black border-2 rounded-lg border-transparent transition-all duration-300">CO2</a>
+                    </li>
+                    <li class="mr-1 w-full">
+                        <a href="#ethylene-tab"
+                            class="inline-block w-full text-center py-2 px-4 text-gray-500 font-semibold hover:text-white hover:bg-black hover:border-black border-2 rounded-lg border-transparent transition-all duration-300">Ethylene</a>
+                    </li>
+                </ul>
+            </div>
+            <div id="temperature-tab" class="tab-content bg-white p-6 rounded-lg shadow-lg mb-6">
                 <h3 class="text-xl font-semibold mb-4">Temperature Chart</h3>
                 <canvas id="temperature-chart"></canvas>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div id="humidity-tab" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg mb-6">
                 <h3 class="text-xl font-semibold mb-4">Humidity Chart</h3>
                 <canvas id="humidity-chart"></canvas>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div id="co2-tab" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg mb-6">
                 <h3 class="text-xl font-semibold mb-4">CO2 Chart</h3>
                 <canvas id="co2-chart"></canvas>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg">
+            <div id="ethylene-tab" class="tab-content hidden bg-white p-6 rounded-lg shadow-lg mb-6">
                 <h3 class="text-xl font-semibold mb-4">Ethylene Chart</h3>
                 <canvas id="ethylene-chart"></canvas>
             </div>
         </div>
+
+        <script>
+            document.querySelectorAll('a[href^="#"]').forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                    document.querySelectorAll('a[href^="#"]').forEach(link => {
+                        link.classList.remove('bg-white', 'border-white', 'text-black');
+                        link.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    document.querySelector(this.getAttribute('href')).classList.remove('hidden');
+                    this.classList.add('bg-white', 'border-white');
+                    this.classList.remove('text-gray-500', 'border-transparent');
+                });
+            });
+        </script>
     </div>
 
     <script>
@@ -211,10 +247,10 @@
         // Fetch the last 10 historical records for this room
         function fetchHistoricalData() {
             fetch(`/api/sensors/history/24/${roomId}`)
-            .then(response => response.json())
-            .then(data => {
-                const tableBody = document.getElementById('historical-table-body');
-                tableBody.innerHTML = data.slice(0, 10).map(record => `
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('historical-table-body');
+                    tableBody.innerHTML = data.slice(0, 10).map(record => `
             <tr>
                 <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
                 <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
@@ -224,18 +260,18 @@
             </tr>
             `).join('');
 
-                // Add "See More" button
-                const historicalDataDiv = document.getElementById('historical-data');
-                if (!document.getElementById('see-more-historical')) {
-                const seeMoreButton = document.createElement('button');
-                seeMoreButton.id = 'see-more-historical';
-                seeMoreButton.className = 'mt-4 text-blue-500 underline';
-                seeMoreButton.textContent = 'See More';
-                seeMoreButton.addEventListener('click', showHistoricalModal);
-                historicalDataDiv.appendChild(seeMoreButton);
-                }
-            })
-            .catch(error => console.error('Error fetching historical data:', error));
+                    // Add "See More" button
+                    const historicalDataDiv = document.getElementById('historical-data');
+                    if (!document.getElementById('see-more-historical')) {
+                        const seeMoreButton = document.createElement('button');
+                        seeMoreButton.id = 'see-more-historical';
+                        seeMoreButton.className = 'mt-4 text-blue-500 underline';
+                        seeMoreButton.textContent = 'See More';
+                        seeMoreButton.addEventListener('click', showHistoricalModal);
+                        historicalDataDiv.appendChild(seeMoreButton);
+                    }
+                })
+                .catch(error => console.error('Error fetching historical data:', error));
         }
 
         function showHistoricalModal() {
@@ -280,20 +316,20 @@
 
             // Close modal functionality
             document.getElementById('close-historical-modal').addEventListener('click', () => {
-            document.body.removeChild(modal);
+                document.body.removeChild(modal);
             });
 
             // Search functionality
             document.getElementById('search-historical').addEventListener('click', () => {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
 
-            if (startDate && endDate) {
-                fetch(`/api/sensors/history/${roomId}/${startDate}/${endDate}`)
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.getElementById('historical-modal-table-body');
-                    tableBody.innerHTML = data.map(record => `
+                if (startDate && endDate) {
+                    fetch(`/api/sensors/history/${roomId}/${startDate}/${endDate}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const tableBody = document.getElementById('historical-modal-table-body');
+                            tableBody.innerHTML = data.map(record => `
                     <tr>
                         <td class="px-4 py-2">${new Date(record.timestamp).toLocaleString()}</td>
                         <td class="px-4 py-2">${record.TempConsign.toFixed(2)}°C</td>
@@ -302,23 +338,23 @@
                         <td class="px-4 py-2">${record.ethylene.toFixed(2)} ppm</td>
                     </tr>
                     `).join('');
-                })
-                .catch(error => console.error('Error fetching historical data:', error));
-            } else {
-                alert('Please select both start and end dates.');
-            }
+                        })
+                        .catch(error => console.error('Error fetching historical data:', error));
+                } else {
+                    alert('Please select both start and end dates.');
+                }
             });
 
             // Export functionality
             document.getElementById('export-historical').addEventListener('click', () => {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
 
-            if (startDate && endDate) {
-                window.open(`/api/sensors/history/${roomId}/${startDate}/${endDate}/export`, '_blank');
-            } else {
-                alert('Please select both start and end dates.');
-            }
+                if (startDate && endDate) {
+                    window.open(`/api/sensors/history/${roomId}/${startDate}/${endDate}/export`, '_blank');
+                } else {
+                    alert('Please select both start and end dates.');
+                }
             });
         }
 
